@@ -30,6 +30,9 @@ export function useAuth({ showToast }) {
   const [authPassword, setAuthPassword] = useState("");
   const [authMode, setAuthMode] = useState("signIn");
   const [authMessage, setAuthMessage] = useState("");
+  // Set when a signup needs email confirmation, so the UI can show a prominent
+  // "check your email" state instead of just a small toast.
+  const [signUpPendingEmail, setSignUpPendingEmail] = useState("");
   const [rememberedEmails, setRememberedEmails] = useState(() => loadRememberedEmails());
   const [guestMode, setGuestMode] = useState(() => {
     try { return localStorage.getItem(GUEST_MODE_KEY) === "1"; } catch { return false; }
@@ -52,16 +55,44 @@ export function useAuth({ showToast }) {
     e.preventDefault();
     setAuthMessage(authMode === "signUp" ? "Creating account…" : "Signing in…");
     const authCall = authMode === "signUp"
-      ? supabase.auth.signUp({ email: authEmail, password: authPassword })
+      // Always pass emailRedirectTo so the confirmation link uses the current origin —
+      // doesn't depend on a correctly-configured Supabase Site URL.
+      ? supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: { emailRedirectTo: window.location.origin },
+        })
       : supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
     const { data, error } = await authCall;
     if (error) { setAuthMessage(error.message); return; }
     setRememberedEmails(rememberEmail(authEmail));
-    if (authMode === "signUp" && !data.session) { setAuthMessage("Account created. Check your email to confirm, then sign in."); return; }
+    if (authMode === "signUp" && !data.session) {
+      setSignUpPendingEmail(authEmail);
+      setAuthMessage("");
+      setAuthPassword("");
+      return;
+    }
     setAuthPassword("");
     try { localStorage.removeItem(GUEST_MODE_KEY); } catch {}
     setGuestMode(false);
     setAuthMessage(authMode === "signUp" ? "Account created and signed in." : "Signed in.");
+  }
+
+  async function resendSignUpConfirmation() {
+    if (!signUpPendingEmail) return;
+    setAuthMessage("Resending email…");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: signUpPendingEmail,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setAuthMessage(error ? error.message : "Confirmation email re-sent.");
+  }
+
+  function dismissSignUpPending() {
+    setSignUpPendingEmail("");
+    setAuthMessage("");
+    setAuthMode("signIn");
   }
 
   function continueAsGuest() {
@@ -120,5 +151,8 @@ export function useAuth({ showToast }) {
     signOut,
     exitGuestMode,
     continueAsGuest,
+    signUpPendingEmail,
+    resendSignUpConfirmation,
+    dismissSignUpPending,
   };
 }

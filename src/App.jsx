@@ -58,6 +58,9 @@ export default function ReintroductionTrackerApp() {
           onSubmit={auth.handleEmailPasswordAuth}
           onForgotPassword={auth.handleForgotPassword}
           onContinueAsGuest={auth.continueAsGuest}
+          signUpPendingEmail={auth.signUpPendingEmail}
+          onResendSignUpConfirmation={auth.resendSignUpConfirmation}
+          onDismissSignUpPending={auth.dismissSignUpPending}
         />
       </>
     );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "./ui.jsx";
-import { Sparkles, UserCircle2, Mail } from "lucide-react";
+import { Sparkles, UserCircle2, Mail, MailCheck } from "lucide-react";
 
 export function AuthLanding({
   mode,
@@ -14,6 +14,9 @@ export function AuthLanding({
   onSubmit,
   onForgotPassword,
   onContinueAsGuest,
+  signUpPendingEmail = "",
+  onResendSignUpConfirmation,
+  onDismissSignUpPending,
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -34,6 +37,37 @@ export function AuthLanding({
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            {signUpPendingEmail ? (
+              <div className="p-6 sm:p-7 space-y-4">
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-50 text-emerald-600">
+                    <MailCheck size={28} />
+                  </div>
+                </div>
+                <div className="text-center space-y-1">
+                  <h2 className="text-lg font-bold text-slate-900">Check your email</h2>
+                  <p className="text-sm text-slate-600">
+                    We sent a confirmation link to <span className="font-semibold text-slate-900 break-all">{signUpPendingEmail}</span>.
+                    Tap it, then come back here to sign in.
+                  </p>
+                </div>
+                <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
+                  Can't find it? Check your spam folder. The link expires in 24 hours.
+                </div>
+                <div className="space-y-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={onResendSignUpConfirmation}>
+                    Resend email
+                  </Button>
+                  <Button type="button" variant="ghost" className="w-full" onClick={onDismissSignUpPending}>
+                    Use a different email
+                  </Button>
+                </div>
+                {message && (
+                  <p className="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 text-center">{message}</p>
+                )}
+              </div>
+            ) : (
+            <>
             <div className="flex border-b border-slate-100" role="group" aria-label="Auth mode">
               {[
                 { key: "signIn", label: "Sign in" },
@@ -154,6 +188,8 @@ export function AuthLanding({
                 Guest mode keeps everything on this device. You can sign in later from Settings to back up your data.
               </p>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
