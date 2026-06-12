@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Reintro Tracker">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background. iOS auto-rounds; Android adaptive icons crop into a safe circle,
+       so the leaf is centered inside the inner ~80% safe zone. -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g>
+    <!-- Leaf silhouette (almond shape, slightly tilted) -->
+    <path d="M 386 126
+             C 412 152, 422 200, 414 250
+             C 402 322, 348 386, 274 410
+             C 220 426, 168 422, 132 398
+             C 110 376, 100 332, 108 286
+             C 122 214, 178 150, 252 122
+             C 304 104, 358 102, 386 126 Z"
+          fill="white" opacity="0.98"/>
+    <!-- Center vein, tilted with the leaf -->
+    <path d="M 388 128 L 152 372"
+          stroke="#c7d2fe" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.9"/>
+    <!-- Side veins, gently curving off the midrib -->
+    <path d="M 320 188 Q 286 224, 230 234" stroke="#c7d2fe" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.85"/>
+    <path d="M 260 256 Q 222 282, 178 292" stroke="#c7d2fe" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.85"/>
+    <path d="M 348 220 Q 372 256, 372 304" stroke="#c7d2fe" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.85"/>
+    <path d="M 288 296 Q 316 332, 316 372" stroke="#c7d2fe" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.85"/>
+  </g>
+</svg>
