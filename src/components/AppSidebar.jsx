@@ -58,7 +58,7 @@ function PhasePill({ phaseInfo }) {
   );
 }
 
-export function AppSidebar({ tab, onTabChange, stats, session, syncStatus, phaseInfo }) {
+export function AppSidebar({ tab, onTabChange, stats, session, syncStatus, phaseInfo, userName }) {
   const s = (phaseInfo && PHASE_STYLE[phaseInfo.phase]) || PHASE_STYLE.pre;
   return (
     <aside
@@ -69,8 +69,10 @@ export function AppSidebar({ tab, onTabChange, stats, session, syncStatus, phase
         <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
           <Leaf size={13} className="text-white" />
         </div>
-        <div>
-          <div className="text-sm font-bold text-slate-900 leading-tight">Reintro</div>
+        <div className="min-w-0">
+          <div className="text-sm font-bold text-slate-900 leading-tight truncate">
+            {userName ? `${userName}'s Reintro` : "Reintro"}
+          </div>
           <div className="text-[10px] text-slate-500 leading-tight font-medium">Tracker</div>
         </div>
       </div>

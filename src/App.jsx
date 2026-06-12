@@ -83,13 +83,16 @@ export default function ReintroductionTrackerApp() {
         session={auth.session}
         syncStatus={app.syncStatus}
         phaseInfo={app.phaseInfo}
+        userName={state.user.name}
       />
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-56">
 
         <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 h-14 flex items-center px-4 md:px-6 gap-3 shrink-0">
           <div className="flex-1 min-w-0">
-            <div className="lg:hidden font-bold text-sm text-slate-900 leading-tight">Reintro Tracker</div>
+            <div className="lg:hidden font-bold text-sm text-slate-900 leading-tight">
+              {state.user.name ? `${state.user.name}'s Reintro Tracker` : "Reintro Tracker"}
+            </div>
             <div className="lg:hidden text-xs text-slate-500 leading-tight">
               {app.phaseInfo?.phase === "detox"   ? `Detox · Day ${app.phaseInfo.day} of ${app.phaseInfo.totalDays ?? 14}` :
                app.phaseInfo?.phase === "reintro" ? `Reintroduction · Day ${app.phaseInfo.day}` :
