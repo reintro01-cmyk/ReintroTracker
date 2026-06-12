@@ -15,7 +15,7 @@ import { ReportsTab } from "./components/tabs/ReportsTab.jsx";
 import { ProfileTab } from "./components/tabs/ProfileTab.jsx";
 import { useAuth } from "./hooks/useAuth.js";
 import { useAppState } from "./hooks/useAppState.js";
-import { Settings } from "lucide-react";
+import { Settings, UserCircle2 } from "lucide-react";
 
 export default function ReintroductionTrackerApp() {
   const [toast, setToast] = useState(null);
@@ -109,6 +109,18 @@ export default function ReintroductionTrackerApp() {
                 ? `Starts in ${app.phaseInfo.daysUntilStart} days`
                 : "Programme"}
             </div>
+            <button
+              onClick={() => setTab("profile")}
+              aria-label="Profile"
+              aria-current={tab === "profile" ? "page" : undefined}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+                tab === "profile"
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              }`}
+            >
+              <UserCircle2 size={16} />
+            </button>
             <button
               onClick={() => setSettingsOpen(v => !v)}
               aria-label="Account & settings"

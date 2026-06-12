@@ -4,13 +4,14 @@ import {
   BarChart2, Utensils
 } from "lucide-react";
 
+// Profile lives in the top-right header (next to Settings) instead of the main nav, so the
+// primary nav stays focused on the daily flow (Home → Log → Schedule → Recipes → Reports).
 export const NAV_ITEMS = [
   { id: "home",       label: "Home",       icon: Home },
   { id: "log",        label: "Log",        icon: Utensils },
   { id: "schedule",   label: "Schedule",   icon: CalendarDays },
   { id: "recipes",    label: "Recipes",    icon: BookOpen },
   { id: "reports",    label: "Reports",    icon: BarChart2 },
-  { id: "profile",    label: "Profile",    icon: UserCircle },
 ];
 
 const PHASE_STYLE = {
