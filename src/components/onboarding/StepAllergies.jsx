@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DEFAULT_FOODS } from "../../data/foods";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Leaf, X } from "lucide-react";
 
 // Common allergen quick-picks. ids are resolved against the live food list, so an id that
 // doesn't exist is silently dropped (safe). Each preset toggles all of its foods at once.
@@ -18,9 +18,12 @@ const PRESETS = [
 
 const FOOD_IDS = new Set(DEFAULT_FOODS.map(f => f.id));
 
-export function StepAllergies({ allergies, setAllergies }) {
+export function StepAllergies({ allergies, setAllergies, showSafeFoods = false, safeFoods = [], setSafeFoods }) {
   const [search, setSearch] = useState("");
+  const [safeSearch, setSafeSearch] = useState("");
   const sel = new Set(allergies);
+  const safeSel = new Set(safeFoods);
+  const FOODS_BY_ID = Object.fromEntries(DEFAULT_FOODS.map(f => [f.id, f]));
 
   const toggle = id => setAllergies(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleMany = ids => setAllergies(prev => {
@@ -33,8 +36,19 @@ export function StepAllergies({ allergies, setAllergies }) {
     return valid.length > 0 && valid.every(id => sel.has(id));
   };
 
+  // Safe-foods: tap to mark as already-known-safe. Mutually exclusive with allergies —
+  // can't be both. Adding to safe removes from allergies; same in reverse.
+  const toggleSafe = id => {
+    if (!setSafeFoods) return;
+    setSafeFoods(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    if (sel.has(id)) setAllergies(prev => prev.filter(x => x !== id));
+  };
+
   const filtered = search
     ? DEFAULT_FOODS.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
+    : [];
+  const safeFiltered = safeSearch
+    ? DEFAULT_FOODS.filter(f => f.name.toLowerCase().includes(safeSearch.toLowerCase()) && !safeSel.has(f.id) && !sel.has(f.id))
     : [];
 
   return (
@@ -101,6 +115,56 @@ export function StepAllergies({ allergies, setAllergies }) {
           <span>
             {allergies.length} food{allergies.length !== 1 ? "s" : ""} marked as allergies — excluded from recipes and your schedule.
           </span>
+        </div>
+      )}
+
+      {showSafeFoods && (
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <div className="flex items-start gap-2">
+            <Leaf size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Any foods you already know are safe?</h3>
+              <p className="text-xs text-slate-500">
+                Eaten recently without trouble? Mark them as Safe — they'll be cleared on day 1 so we can plan around them.
+              </p>
+            </div>
+          </div>
+
+          <input
+            type="text" placeholder="Search foods you tolerate well…" value={safeSearch}
+            onChange={e => setSafeSearch(e.target.value)}
+            aria-label="Search foods to mark as safe"
+            className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+          />
+
+          {safeFiltered.length > 0 && (
+            <div className="max-h-44 overflow-y-auto pr-1 space-y-1">
+              {safeFiltered.map(food => (
+                <button
+                  key={food.id} type="button" onClick={() => { toggleSafe(food.id); setSafeSearch(""); }}
+                  className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl border border-slate-100 bg-white hover:border-emerald-200 hover:bg-emerald-50/40 text-left transition-all"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-slate-800">{food.name}</div>
+                    <div className="text-xs text-slate-500">{food.group}</div>
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-600 shrink-0">+ Safe</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {safeFoods.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {safeFoods.map(id => (
+                <span key={id} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800">
+                  {FOODS_BY_ID[id]?.name || id}
+                  <button type="button" onClick={() => toggleSafe(id)} aria-label={`Remove ${FOODS_BY_ID[id]?.name || id} from safe`}
+                    className="text-emerald-600 hover:text-emerald-800"><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

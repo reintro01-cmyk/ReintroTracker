@@ -232,7 +232,7 @@ export function useAppState({ session, showToast }) {
     setState(initialState());
   }
 
-  function handleOnboardingComplete({ programmeStart, introOrder, preferredGroups, priorityFoods, allergies = [], onboardingComplete }) {
+  function handleOnboardingComplete({ programmeStart, introOrder, preferredGroups, priorityFoods, allergies = [], safeFoods = [], onboardingComplete }) {
     setState(prev => {
       let foods = [...prev.foods];
       if (introOrder === "group" && preferredGroups.length) {
@@ -242,9 +242,11 @@ export function useAppState({ session, showToast }) {
         const prioritySet = new Set(priorityFoods);
         foods = [...foods.filter(f => prioritySet.has(f.id)), ...foods.filter(f => !prioritySet.has(f.id))];
       }
-      // Declared allergies are marked Avoid up front, so their recipes are filtered and
-      // they're skipped in the reintroduction schedule.
+      // Declared allergies are marked Avoid up front; foods the user already knows are safe are
+      // marked Safe so they're skipped from the introduce schedule and unlock recipes immediately.
+      // Allergies win on overlap (`safeFoods` is applied first, then allergies overwrite).
       const status = { ...prev.status };
+      for (const id of safeFoods) status[id] = "Safe";
       for (const id of allergies) status[id] = "Avoid";
       return { ...prev, programmeStart, introOrder, preferredGroups, priorityFoods, allergies, onboardingComplete, foods, status };
     });

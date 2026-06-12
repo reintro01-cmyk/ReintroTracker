@@ -1,6 +1,79 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Button } from "./ui.jsx";
-import { Download, Upload, RotateCcw, X } from "lucide-react";
+import { Download, Upload, RotateCcw, X, Check } from "lucide-react";
+
+// Two-stage save: local draft updates on every keystroke (no input lag); the parent state
+// updates on blur / Enter / 800ms of idle, and a brief "Saved ✓" confirms it landed. Avoids
+// the prior UX where users had no idea whether their typing had been captured.
+function DisplayNameCard({ userName, onNameChange }) {
+  const [draft, setDraft] = useState(userName || "");
+  const [savedAt, setSavedAt] = useState(0);
+  const [pending, setPending] = useState(false);
+  const idleRef = useRef();
+  const justSavedRef = useRef();
+
+  // Sync external changes (e.g. cloud reload) when the input isn't being edited.
+  useEffect(() => { if (!pending) setDraft(userName || ""); }, [userName, pending]);
+
+  function commit(value) {
+    const trimmed = (value ?? draft).trim();
+    onNameChange(trimmed);
+    setPending(false);
+    setSavedAt(Date.now());
+    if (justSavedRef.current) clearTimeout(justSavedRef.current);
+    justSavedRef.current = setTimeout(() => setSavedAt(0), 1800);
+  }
+
+  function handleChange(e) {
+    const v = e.target.value;
+    setDraft(v);
+    setPending(v.trim() !== (userName || "").trim());
+    if (idleRef.current) clearTimeout(idleRef.current);
+    idleRef.current = setTimeout(() => commit(v), 800);
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
+      <div className="bg-violet-50 border-b border-violet-100 px-5 py-4">
+        <div className="text-[11px] font-bold uppercase tracking-widest text-violet-600 mb-0.5">You</div>
+        <h2 className="font-bold text-base text-violet-900">Your name</h2>
+      </div>
+      <div className="px-5 py-4 space-y-2">
+        <label htmlFor="display-name" className="text-xs font-semibold text-slate-600 block">
+          Display name <span className="font-normal text-slate-500">(shown in the header)</span>
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="display-name"
+            type="text"
+            value={draft}
+            onChange={handleChange}
+            onBlur={() => { if (idleRef.current) clearTimeout(idleRef.current); commit(); }}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (idleRef.current) clearTimeout(idleRef.current); commit(); e.currentTarget.blur(); } }}
+            placeholder="Your name"
+            className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus-visible:outline-none focus:border-indigo-400 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.30)] transition-shadow"
+          />
+          <Button
+            type="button" size="sm" variant={pending ? "default" : "outline"} disabled={!pending}
+            onClick={() => { if (idleRef.current) clearTimeout(idleRef.current); commit(); }}
+            aria-label="Save display name"
+          >
+            Save
+          </Button>
+        </div>
+        <div className="h-4 text-xs" aria-live="polite">
+          {pending ? (
+            <span className="text-slate-500">Unsaved changes — press Enter or click Save.</span>
+          ) : savedAt ? (
+            <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+              <Check size={12} /> Saved
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsDrawer({
   isOpen, onClose,
@@ -161,25 +234,8 @@ export function SettingsDrawer({
           </div>
 
           {/* Display name */}
-          <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
-            <div className="bg-violet-50 border-b border-violet-100 px-5 py-4">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-violet-600 mb-0.5">You</div>
-              <h2 className="font-bold text-base text-violet-900">Your name</h2>
-            </div>
-            <div className="px-5 py-4">
-              <label htmlFor="display-name" className="text-xs font-semibold text-slate-600 block mb-1.5">
-                Display name <span className="font-normal text-slate-500">(shown in the header)</span>
-              </label>
-              <input
-                id="display-name"
-                type="text"
-                value={userName}
-                onChange={e => onNameChange(e.target.value)}
-                placeholder="Your name"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus-visible:outline-none focus:border-indigo-400 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.30)] transition-shadow"
-              />
-            </div>
-          </div>
+          <DisplayNameCard userName={userName} onNameChange={onNameChange} />
+
 
           {/* Data management */}
           <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">

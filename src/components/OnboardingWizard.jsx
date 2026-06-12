@@ -5,7 +5,7 @@ import { todayIso } from "../utils/dates.js";
 import { StepStartDate } from "./onboarding/StepStartDate.jsx";
 import { StepStrategy } from "./onboarding/StepStrategy.jsx";
 import { StepGroupOrder } from "./onboarding/StepGroupOrder.jsx";
-import { StepPriorityFoods } from "./onboarding/StepPriorityFoods.jsx";
+import { StepPriorityFoods, PRIORITY_MAX } from "./onboarding/StepPriorityFoods.jsx";
 import { StepAllergies } from "./onboarding/StepAllergies.jsx";
 import { StepSummary } from "./onboarding/StepSummary.jsx";
 import { ChevronRight, ChevronLeft, Sparkles, CheckCircle2, X } from "lucide-react";
@@ -32,6 +32,7 @@ export function OnboardingWizard({ onComplete }) {
   const [groupOrder, setGroupOrder] = useState([...ALL_GROUPS]);
   const [priorityFoods, setPriorityFoods] = useState([]);
   const [allergies, setAllergies] = useState([]);
+  const [safeFoods, setSafeFoods] = useState([]);   // priority-path only: foods already known-safe
   const [search, setSearch] = useState("");
 
   // Ordered step keys — derived from the chosen strategy, so there's no brittle index math.
@@ -65,7 +66,11 @@ export function OnboardingWizard({ onComplete }) {
   }
 
   function togglePriorityFood(foodId) {
-    setPriorityFoods(prev => prev.includes(foodId) ? prev.filter(id => id !== foodId) : [...prev, foodId]);
+    setPriorityFoods(prev => {
+      if (prev.includes(foodId)) return prev.filter(id => id !== foodId);
+      if (prev.length >= PRIORITY_MAX) return prev;  // hard cap
+      return [...prev, foodId];
+    });
   }
 
   function nextStep() {
@@ -77,11 +82,11 @@ export function OnboardingWizard({ onComplete }) {
   }
 
   function handleComplete() {
-    onComplete({ programmeStart: startDate, introOrder, preferredGroups: groupOrder, priorityFoods, allergies, onboardingComplete: true });
+    onComplete({ programmeStart: startDate, introOrder, preferredGroups: groupOrder, priorityFoods, allergies, safeFoods, onboardingComplete: true });
   }
 
   function handleSkip() {
-    onComplete({ programmeStart: today, introOrder: "standard", preferredGroups: [...ALL_GROUPS], priorityFoods: [], allergies: [], onboardingComplete: true });
+    onComplete({ programmeStart: today, introOrder: "standard", preferredGroups: [...ALL_GROUPS], priorityFoods: [], allergies: [], safeFoods: [], onboardingComplete: true });
   }
 
   return (
@@ -107,7 +112,13 @@ export function OnboardingWizard({ onComplete }) {
           {currentKey === "strategy"     && <StepStrategy introOrder={introOrder} setIntroOrder={setIntroOrder} />}
           {currentKey === "groupOrder"   && <StepGroupOrder groupOrder={groupOrder} moveGroup={moveGroup} />}
           {currentKey === "priorityFoods" && <StepPriorityFoods priorityFoods={priorityFoods} togglePriorityFood={togglePriorityFood} search={search} setSearch={setSearch} filteredFoods={filteredFoods} />}
-          {currentKey === "allergies"    && <StepAllergies allergies={allergies} setAllergies={setAllergies} />}
+          {currentKey === "allergies"    && (
+            <StepAllergies
+              allergies={allergies} setAllergies={setAllergies}
+              showSafeFoods={introOrder === "priority"}
+              safeFoods={safeFoods} setSafeFoods={setSafeFoods}
+            />
+          )}
           {currentKey === "summary"      && <StepSummary startDate={startDate} reintroDate={reintroDate} introOrder={introOrder} priorityFoods={priorityFoods} />}
 
           <div className="flex items-center justify-between mt-7 pt-5 border-t border-slate-100">
