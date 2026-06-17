@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { edgeErrorMessage } from "./edgeError.js";
 
 /**
  * Call the Supabase Edge Function to generate AI recipes for a single meal slot.
@@ -26,7 +27,7 @@ export async function generateRecipesForSlot({
     body: { slotLabel, slotTime, slotType, phase, safeFoods, slotKcal, macros },
   });
 
-  if (error) throw new Error(error.message || "Edge Function error");
+  if (error) throw new Error(await edgeErrorMessage(error));
   if (!Array.isArray(data?.recipes)) throw new Error("No recipes returned from AI");
   return data.recipes;
 }

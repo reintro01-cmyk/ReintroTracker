@@ -61,6 +61,11 @@ export function useAppState({ session, showToast }) {
   const [recentlyClearedFoodId, setRecentlyClearedFoodId] = useState(null);
   const loadedCloudRef = useRef(false);
   const saveTimerRef = useRef(null);
+  // Always-current snapshot of state, so the async cloud-load can seed a brand-new
+  // cloud row with whatever the user already has in memory (e.g. guest-mode work)
+  // rather than a blank slate — without re-running the load effect on every keystroke.
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   // Reset cloud tracking when session changes (handles sign-in, sign-out, auth change)
   useEffect(() => {
@@ -100,7 +105,10 @@ export function useAppState({ session, showToast }) {
         .eq("user_id", session.user.id)
         .maybeSingle();
 
-      if (error) { setSyncStatus(`Load failed: ${error.message}`); loadedCloudRef.current = true; return; }
+      // On a failed load, leave loadedCloudRef false so the save effect stays locked — otherwise
+      // the next local change would upsert over (possibly newer) cloud data we never managed to read.
+      // A token refresh re-runs this effect, which retries the load.
+      if (error) { setSyncStatus(`Load failed: ${error.message}`); return; }
 
       if (data?.state && Array.isArray(data.state.foods)) {
         const migrated = migrateState(data.state, initialState);
@@ -112,10 +120,12 @@ export function useAppState({ session, showToast }) {
           setSyncStatus("Loaded ✓");
         }
       } else {
-        const base = initialState();
-        setState(base);
-        await supabase.from("tracker_states").upsert({ user_id: session.user.id, state: base, updated_at: new Date().toISOString() });
-        setSyncStatus("Created new cloud state ✓");
+        // No cloud row yet (brand-new account, or a guest who just signed up). Seed the cloud with
+        // whatever is already in memory instead of wiping it to a blank slate — this is what carries
+        // guest-mode work through sign-up. state already equals this, so no setState/re-render needed.
+        const seed = stateRef.current;
+        await supabase.from("tracker_states").upsert({ user_id: session.user.id, state: seed, updated_at: new Date().toISOString() });
+        setSyncStatus("Synced ✓");
       }
       loadedCloudRef.current = true;
     }

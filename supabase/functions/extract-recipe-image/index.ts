@@ -15,9 +15,30 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const ALLOWED_UNITS = new Set(["g", "ml", "tsp", "tbsp", "cup", "katori", "bowl", "glass", "piece", "slice", "handful", "plate", "pinch"]);
+// Anthropic accepts these image media types; reject anything else before forwarding to the model.
+const ALLOWED_MEDIA = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+// Cap on the base64 payload (~5 MB decoded; base64 inflates ~33%). Guards memory + model cost.
+const MAX_IMAGE_B64 = 7_000_000;
+const RATE_LIMIT_PER_HOUR = 30;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+}
+
+// Per-user hourly cap. Calls the record_ai_call RPC (SECURITY DEFINER, counts in Postgres so it
+// holds across edge instances). Returns a 429 Response when the user is over the limit, else null.
+async function enforceRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  action: string,
+  limit: number,
+): Promise<Response | null> {
+  const { data, error } = await supabase.rpc("record_ai_call", { p_action: action, p_limit: limit });
+  if (error) { console.error("rate-limit check failed:", error); return jsonResponse({ error: "Rate limit check failed" }, 500); }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row && row.allowed === false) {
+    return jsonResponse({ error: "Rate limit exceeded — please try again later." }, 429);
+  }
+  return null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -32,12 +53,22 @@ Deno.serve(async (req: Request) => {
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData?.user) return jsonResponse({ error: "Unauthorized" }, 401);
 
+  // ── Rate limit ─────────────────────────────────────────────────────────────
+  const limited = await enforceRateLimit(supabase, "extract-recipe-image", RATE_LIMIT_PER_HOUR);
+  if (limited) return limited;
+
   let payload: Record<string, unknown>;
   try { payload = await req.json(); } catch { return jsonResponse({ error: "Invalid JSON body" }, 400); }
   const imageB64 = payload.image_base64;
   const mediaType = (typeof payload.media_type === "string" ? payload.media_type : "image/jpeg");
+  if (!ALLOWED_MEDIA.has(mediaType)) {
+    return jsonResponse({ error: `media_type must be one of: ${[...ALLOWED_MEDIA].join(", ")}` }, 400);
+  }
   if (typeof imageB64 !== "string" || imageB64.length < 100) {
     return jsonResponse({ error: "image_base64 required" }, 400);
+  }
+  if (imageB64.length > MAX_IMAGE_B64) {
+    return jsonResponse({ error: "Image too large (max ~5 MB)" }, 413);
   }
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -99,6 +130,7 @@ If a weight/volume is given in grams or ml, use that. Use null qty for "to taste
     if (!name || ingredients.length === 0) return jsonResponse({ error: "Could not extract a recipe", name, ingredients }, 422);
     return jsonResponse({ name, servings, ingredients, health_tags, stated_kcal });
   } catch (err) {
-    return jsonResponse({ error: err instanceof Error ? err.message : String(err) }, 500);
+    console.error("extract-recipe-image failed:", err);
+    return jsonResponse({ error: "Image extraction failed. Please try again." }, 500);
   }
 });

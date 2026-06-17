@@ -27,6 +27,24 @@ function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
 
+const RATE_LIMIT_PER_HOUR = 60;
+
+// Per-user hourly cap. Calls the record_ai_call RPC (SECURITY DEFINER, counts in Postgres so it
+// holds across edge instances). Returns a 429 Response when the user is over the limit, else null.
+async function enforceRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  action: string,
+  limit: number,
+): Promise<Response | null> {
+  const { data, error } = await supabase.rpc("record_ai_call", { p_action: action, p_limit: limit });
+  if (error) { console.error("rate-limit check failed:", error); return jsonResponse({ error: "Rate limit check failed" }, 500); }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row && row.allowed === false) {
+    return jsonResponse({ error: "Rate limit exceeded — please try again later." }, 429);
+  }
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -39,6 +57,10 @@ Deno.serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData?.user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+  // ── Rate limit ─────────────────────────────────────────────────────────────
+  const limited = await enforceRateLimit(supabase, "parse-recipe", RATE_LIMIT_PER_HOUR);
+  if (limited) return limited;
 
   // ── Parse + validate input ─────────────────────────────────────────────────
   let payload: Record<string, unknown>;
@@ -113,7 +135,7 @@ Return ONLY valid JSON, no markdown, no commentary, no nutrition fields:
 
     return jsonResponse({ servings, lines });
   } catch (err) {
-    const messageText = err instanceof Error ? err.message : String(err);
-    return jsonResponse({ error: messageText }, 500);
+    console.error("parse-recipe failed:", err);
+    return jsonResponse({ error: "Recipe parsing failed. Please try again." }, 500);
   }
 });

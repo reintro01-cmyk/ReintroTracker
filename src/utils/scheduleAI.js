@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { normaliseGroupOrder } from "./scheduleOrder.js";
+import { edgeErrorMessage } from "./edgeError.js";
 
 /**
  * LLM fallback for the schedule-order parser. Only call this when the local
@@ -18,7 +19,7 @@ export async function parseGroupOrderWithAI(text, available) {
   const { data, error } = await supabase.functions.invoke("parse-schedule-order", {
     body: { text, groups: available },
   });
-  if (error) throw new Error(error.message || "Edge Function error");
+  if (error) throw new Error(await edgeErrorMessage(error));
   if (!Array.isArray(data?.order)) throw new Error("No order returned from AI");
   return normaliseGroupOrder(data.order, available);
 }
