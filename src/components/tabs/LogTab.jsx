@@ -3,8 +3,9 @@ import { useFoodLog } from "../../hooks/useFoodLog.js";
 import { num } from "../../utils/foodLog.js";
 import { iso, addDays, todayIso } from "../../utils/dates.js";
 import { MealLogger } from "../log/MealLogger.jsx";
+import { ShareLogModal } from "../log/ShareLogModal.jsx";
 import {
-  Trash2, Utensils, History, Plus, CalendarDays,
+  Trash2, Utensils, History, Plus, CalendarDays, Share2,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
 } from "lucide-react";
 
@@ -124,6 +125,7 @@ function Collapsible({ icon: Icon, title, count, defaultOpen = false, children }
 
 export function LogTab({ session, nutrition, country = "india" }) {
   const { date, setDate, logs, units, totals, history, dayHistory, search, fetchMeasures, addLog, removeLog } = useFoodLog(session);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // The user's frequent dishes, ready to re-log in one tap (carries the last portion + macros).
   const recent = useMemo(() => (history || []).slice(0, 8), [history]);
@@ -179,7 +181,13 @@ export function LogTab({ session, nutrition, country = "india" }) {
         <div className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{friendlyDay(date)}’s log</span>
-            <span className="text-[11px] font-semibold text-slate-500">{logs.length} item{logs.length === 1 ? "" : "s"}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-semibold text-slate-500">{logs.length} item{logs.length === 1 ? "" : "s"}</span>
+              <button onClick={() => setShareOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 active:scale-95 transition-all">
+                <Share2 size={13} /> Share
+              </button>
+            </div>
           </div>
           {mealGroups.map(g => (
             <div key={g.meal} className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
@@ -232,6 +240,10 @@ export function LogTab({ session, nutrition, country = "india" }) {
             </button>
           ))}
         </Collapsible>
+      )}
+
+      {shareOpen && (
+        <ShareLogModal logs={logs} date={date} totalKcal={totals.kcal} onClose={() => setShareOpen(false)} />
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { WeightChart } from "../body/WeightChart.jsx";
 import { WeeklyAverages } from "../body/WeeklyAverages.jsx";
 import { BodyFatEstimate } from "../body/BodyFatEstimate.jsx";
 import { MeasurementsReport } from "../body/MeasurementsReport.jsx";
+import { MeasurementHistory } from "../body/MeasurementHistory.jsx";
 
 export function ReportsTab({ foods, status, observations, body, onBodyChange }) {
   return (
@@ -78,6 +79,22 @@ export function ReportsTab({ foods, status, observations, body, onBodyChange }) 
           </div>
           <div className="p-5">
             <MeasurementsReport measurements={body.measurements} customFields={body.customFields} unit={body.unit} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
+          <div className="bg-slate-50 border-b border-slate-100 px-5 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Logged entries</div>
+            <h2 className="font-bold text-base text-slate-900">Measurement log</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Edit or delete a past entry if you logged something by mistake.</p>
+          </div>
+          <div className="p-5">
+            <MeasurementHistory
+              measurements={body.measurements}
+              customFields={body.customFields}
+              unit={body.unit}
+              onChange={measurements => onBodyChange({ measurements })}
+            />
           </div>
         </div>
       </div>
