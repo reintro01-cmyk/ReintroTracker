@@ -16,19 +16,39 @@ function estimateBodyFat({ weightKg, waistCm, neckCm, heightCm }) {
   );
 }
 
+function computeBmi({ weightKg, heightCm }) {
+  if (!weightKg || !heightCm) return null;
+  const m = heightCm / 100;
+  const bmi = weightKg / (m * m);
+  return Number.isFinite(bmi) && bmi > 0 ? bmi : null;
+}
+
+// WHO adult BMI categories.
+function bmiCategory(bmi) {
+  if (bmi < 18.5) return { label: "Underweight", className: "text-amber-600" };
+  if (bmi < 25)   return { label: "Normal",      className: "text-emerald-600" };
+  if (bmi < 30)   return { label: "Overweight",  className: "text-amber-600" };
+  return { label: "Obese", className: "text-rose-600" };
+}
+
 export function BodyFatEstimate({ body, onChange, compact = false }) {
   const profile = body?.profile || {};
   const latestWeight = body?.weights?.at(-1);
   const latestMeasurement = body?.measurements?.at(-1);
 
   const waistCm = latestMeasurement?.waist || null;
+  const weightKg = latestWeight?.kg || null;
+  const heightCm = Number(profile.heightCm) || null;
 
   const estimate = estimateBodyFat({
-    weightKg: latestWeight?.kg,
+    weightKg,
     waistCm,
     neckCm: Number(profile.neckCm),
-    heightCm: Number(profile.heightCm)
+    heightCm
   });
+
+  const bmi = computeBmi({ weightKg, heightCm });
+  const cat = bmi !== null ? bmiCategory(bmi) : null;
 
   function updateProfile(key, value) {
     // Patch shape: parent's updateBody spreads this into body
@@ -75,9 +95,31 @@ export function BodyFatEstimate({ body, onChange, compact = false }) {
           </label>
         </div>
 
+        {/* BMI — needs only height + latest weight, so it appears as soon as those exist */}
+        <div className="mb-4 pb-4 border-b border-slate-100">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-1">BMI</div>
+          {bmi === null ? (
+            <p className="text-sm text-slate-500">
+              Enter your height above{weightKg ? "" : " and log a weight entry"} to see your BMI.
+            </p>
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-semibold">{bmi.toFixed(1)}</div>
+              <div className={`text-sm font-semibold ${cat.className}`}>{cat.label}</div>
+              <div className="text-xs text-slate-400 ml-auto">
+                {weightKg.toFixed(1)} kg · {heightCm} cm
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Body fat — additionally needs neck + a logged waist measurement */}
+        <div className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-1">Body fat</div>
         {estimate === null ? (
           <p className="text-sm text-slate-500">
-            Add height, neck, latest waist measurement, and latest weight to estimate body fat.
+            {!waistCm
+              ? "Log a waist measurement (plus neck and height above) to estimate body fat."
+              : "Add height, neck, latest waist measurement, and latest weight to estimate body fat."}
           </p>
         ) : (
           <div>
