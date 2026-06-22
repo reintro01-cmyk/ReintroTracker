@@ -5,8 +5,9 @@ import { WeeklyAverages } from "../body/WeeklyAverages.jsx";
 import { BodyFatEstimate } from "../body/BodyFatEstimate.jsx";
 import { MeasurementsReport } from "../body/MeasurementsReport.jsx";
 import { MeasurementHistory } from "../body/MeasurementHistory.jsx";
+import { BloodWorkReport } from "../body/BloodWorkReport.jsx";
 
-export function ReportsTab({ foods, status, observations, body, onBodyChange }) {
+export function ReportsTab({ foods, status, observations, body, onBodyChange, session }) {
   return (
     <div className="max-w-7xl 2xl:max-w-[1400px] mx-auto animate-fadeUp space-y-8">
       <div>
@@ -21,6 +22,24 @@ export function ReportsTab({ foods, status, observations, body, onBodyChange }) 
           <div className="flex-1 h-px bg-slate-200" />
         </div>
         <FoodSensitivityReport foods={foods} status={status} observations={observations} />
+      </div>
+
+      {/* Blood work */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500 shrink-0">Blood work</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+        <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
+          <div className="bg-rose-50 border-b border-rose-100 px-5 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-rose-400 mb-0.5">Labs</div>
+            <h2 className="font-bold text-base text-rose-900">Blood work & AI summary</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Upload a lab report to get a plain-language summary of what it says.</p>
+          </div>
+          <div className="p-5">
+            <BloodWorkReport session={session} />
+          </div>
+        </div>
       </div>
 
       {/* Body analytics */}

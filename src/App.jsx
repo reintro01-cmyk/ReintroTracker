@@ -213,6 +213,7 @@ export default function ReintroductionTrackerApp() {
                 observations={state.observations}
                 body={state.body}
                 onBodyChange={app.updateBody}
+                session={auth.session}
               />
             )}
 
