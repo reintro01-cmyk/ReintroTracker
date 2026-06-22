@@ -15,7 +15,14 @@ export function useClinicIdentity(session) {
   const resolve = useCallback(async () => {
     if (!userId) { setMemberships([]); setPatients([]); setLoading(false); return; }
     setLoading(true);
-    await supabase.rpc("claim_invites");
+    // If the user arrived via a share link (?token=…), redeem it before resolving identity.
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      await supabase.rpc("claim_invite", { p_token: token });
+      params.delete("token");
+      window.history.replaceState({}, "", window.location.pathname + (params.toString() ? `?${params}` : ""));
+    }
     const { data } = await supabase.rpc("my_identity");
     setMemberships(data?.memberships || []);
     setPatients(data?.patients || []);

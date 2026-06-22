@@ -6,7 +6,7 @@ import { Activity } from "lucide-react";
 // Non-admin staff (clinician / follower / observer). Stage 1 shows the patient roster so routing
 // and clinic-scoped reads are proven. Assigning schedules, observation days, calorie goals (Stage
 // 2) and water/vitamin monitoring (Stage 4) build on top of this.
-export function ClinicianShell({ auth, identity, showToast }) {
+export function ClinicianShell({ auth, identity }) {
   const clinic = identity.primaryMembership;
   const [patients, setPatients] = useState([]);
 
